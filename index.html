@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Rihlo - Partagez vos aventures</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#C86B3C">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Rihlo">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
     
     <!-- Mapbox -->
     <link href='https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css' rel='stylesheet' />
@@ -698,6 +709,60 @@
             width: 100%;
             height: 200px;
             object-fit: cover;
+        }
+
+        .trip-card-image-wrap {
+            position: relative;
+            height: 200px;
+            overflow: hidden;
+        }
+
+        .trip-card-image-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s;
+        }
+
+        .trip-card:hover .trip-card-image-wrap img {
+            transform: scale(1.04);
+        }
+
+        .trip-cover-btn {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            padding: 7px 14px;
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 20px;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Work Sans', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .trip-cover-btn:hover {
+            background: rgba(200,107,60,0.8);
+            border-color: var(--terracotta);
+        }
+
+        .trip-cover-uploading {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
         }
 
         .trip-card-content {
@@ -2263,6 +2328,15 @@
     <script>
         // Mapbox token
         mapboxgl.accessToken = 'pk.eyJ1IjoiZ290Y2hlIiwiYSI6ImNtbXI5c3kyazE0b2wycnIwNHp3MTh1c3MifQ._XjNpbBqnWJOeKyhWhrfbA';
+
+        // ── PWA Service Worker ──
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(() => console.log('✅ Service Worker enregistré'))
+                    .catch(e => console.log('SW error:', e));
+            });
+        }
         
         let currentUser = null;
         let currentTripId = null;
@@ -2529,10 +2603,18 @@
             empty.classList.add('hidden');
             
             grid.innerHTML = trips.map(trip => `
-                <div class="trip-card" onclick="openTripDetail('${trip.id}')">
-                    <img src="${trip.coverUrl || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=300&fit=crop'}" 
-                         class="trip-card-image" alt="${trip.title}">
-                    <div class="trip-card-content">
+                <div class="trip-card">
+                    <div class="trip-card-image-wrap">
+                        <img src="${trip.coverUrl || getDefaultCover(trip.title)}"
+                             alt="${trip.title}" onclick="openTripDetail('${trip.id}')"
+                             onerror="this.src='${TRIP_DEFAULT_COVERS[0]}'">
+                        <label class="trip-cover-btn">
+                            📷 Changer
+                            <input type="file" accept="image/*" style="display:none"
+                                   onchange="uploadTripCover(event, '${trip.id}', this)">
+                        </label>
+                    </div>
+                    <div class="trip-card-content" onclick="openTripDetail('${trip.id}')" style="cursor:pointer;">
                         <div class="trip-card-title">${trip.title}</div>
                         <div class="trip-card-dates">${formatDate(trip.startDate)} - ${formatDate(trip.endDate)}</div>
                         <div class="trip-card-stats">
@@ -3062,6 +3144,90 @@
             } finally {
                 hideLoading();
             }
+        }
+
+        // ============== TRIP COVER PHOTO ==============
+
+        // Trending default covers (Unsplash - travel aesthetic)
+        const TRIP_DEFAULT_COVERS = [
+            'https://images.unsplash.com/photo-1500835556837-99ac94a94552?w=800&h=400&fit=crop&q=80', // road trip sunset
+            'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=800&h=400&fit=crop&q=80', // airplane window
+            'https://images.unsplash.com/photo-1503220317375-aaad61436b1b?w=800&h=400&fit=crop&q=80', // camera travel
+            'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&h=400&fit=crop&q=80', // open road
+            'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=400&fit=crop&q=80', // beach
+            'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=800&h=400&fit=crop&q=80', // asia street
+        ];
+
+        function getDefaultCover(tripTitle) {
+            // Pick a consistent cover based on trip title hash
+            let hash = 0;
+            for (let i = 0; i < (tripTitle || '').length; i++) hash += tripTitle.charCodeAt(i);
+            return TRIP_DEFAULT_COVERS[hash % TRIP_DEFAULT_COVERS.length];
+        }
+
+        async function uploadTripCover(event, tripId, inputEl) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (file.size > 10 * 1024 * 1024) { alert('Photo trop lourde (max 10 Mo)'); return; }
+
+            // Find image element to show preview
+            const wrap = inputEl.closest('.trip-card-image-wrap');
+            const img = wrap.querySelector('img');
+
+            // Show uploading overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'trip-cover-uploading';
+            overlay.innerHTML = '⏳ Upload en cours…';
+            wrap.appendChild(overlay);
+
+            try {
+                // Compress image before upload
+                const compressed = await compressCoverImage(file, 1200, 0.82);
+
+                // Upload to Firebase Storage
+                const { ref, uploadBytes, getDownloadURL, doc, updateDoc } = window.firebaseModules;
+                const storage = window.firebaseStorage;
+                const db = window.firebaseDb;
+
+                const storagePath = `covers/${currentUser.uid}/${tripId}_${Date.now()}.jpg`;
+                const storageRef = ref(storage, storagePath);
+                const blob = await fetch(compressed).then(r => r.blob());
+                const snap = await uploadBytes(storageRef, blob);
+                const url = await getDownloadURL(snap.ref);
+
+                // Save to Firestore
+                await updateDoc(doc(db, 'trips', tripId), { coverUrl: url });
+
+                // Update preview instantly
+                img.src = url;
+                overlay.remove();
+
+            } catch(e) {
+                overlay.remove();
+                console.error('Cover upload error:', e);
+                alert('Erreur upload : ' + e.message);
+            }
+        }
+
+        function compressCoverImage(file, maxWidth, quality) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let w = img.width, h = img.height;
+                        if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+                        canvas.width = w; canvas.height = h;
+                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
         }
 
         // ============== HERO STATS ==============
@@ -3696,29 +3862,25 @@
                     }
                     ctx.fillStyle = '#050c12'; ctx.fillRect(0, H * 0.58, W, H * 0.42);
                 } else {
-                    // PNG : fond transparent — canvas déjà vide
-                    // On dessine juste la photo si disponible avec opacité réduite
-                    if (heroImg) {
-                        ctx.save();
-                        ctx.globalAlpha = 0.15;
-                        const s = Math.max(W / heroImg.width, H * 0.55 / heroImg.height);
-                        ctx.drawImage(heroImg, (W - heroImg.width*s)/2, 0, heroImg.width*s, heroImg.height*s);
-                        ctx.restore();
-                    }
+                    // PNG style Strava : fond 100% transparent
+                    // Rien à dessiner — le canvas est déjà transparent
                 }
 
                 // ── 2. TOP BAR ────────────────────────────────────────
-                const topGrad = ctx.createLinearGradient(0,0,0,160);
-                topGrad.addColorStop(0,'rgba(200,107,60,0.18)');
-                topGrad.addColorStop(1,'rgba(0,0,0,0)');
-                ctx.fillStyle = topGrad;
-                ctx.fillRect(0, 0, W, 160);
+                // Seulement pour JPG
+                if (format === 'jpeg') {
+                    const topGrad = ctx.createLinearGradient(0,0,0,160);
+                    topGrad.addColorStop(0,'rgba(200,107,60,0.18)');
+                    topGrad.addColorStop(1,'rgba(0,0,0,0)');
+                    ctx.fillStyle = topGrad;
+                    ctx.fillRect(0, 0, W, 160);
+                }
 
                 // Couleurs adaptées selon le format
                 const textMain   = format === 'png' ? '#1A3D4A' : '#FFFFFF';
-                const textFaded  = format === 'png' ? 'rgba(26,61,74,0.55)' : 'rgba(255,255,255,0.55)';
-                const textMuted  = format === 'png' ? 'rgba(26,61,74,0.35)' : 'rgba(255,255,255,0.35)';
-                const haloColor  = format === 'png' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.7)';
+                const textFaded  = format === 'png' ? 'rgba(26,61,74,0.6)' : 'rgba(255,255,255,0.55)';
+                const textMuted  = format === 'png' ? 'rgba(26,61,74,0.4)' : 'rgba(255,255,255,0.35)';
+                const haloColor  = format === 'png' ? 'rgba(255,255,255,0.0)' : 'rgba(0,0,0,0.7)';
 
                 // RIHLO logo
                 ctx.font = '700 58px serif';
