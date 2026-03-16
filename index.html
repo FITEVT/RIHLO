@@ -3562,30 +3562,47 @@
                 // ── 1. HERO PHOTO BACKGROUND ──────────────────────────
                 const heroSrc = cinStepsData[0]?.photoUrl || CIN_HERO_IMGS[0];
                 const heroImg = await loadImg(heroSrc);
-                if (heroImg) {
-                    const s = Math.max(W / heroImg.width, H * 0.55 / heroImg.height);
-                    ctx.drawImage(heroImg, (W - heroImg.width*s)/2, 0, heroImg.width*s, heroImg.height*s);
+
+                if (format === 'jpeg') {
+                    // JPG : fond sombre cinématique
+                    const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+                    bgGrad.addColorStop(0, '#0a0a0a'); bgGrad.addColorStop(0.5, '#0f1f26'); bgGrad.addColorStop(1, '#0a0a0a');
+                    ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, W, H);
+
+                    if (heroImg) {
+                        const s = Math.max(W / heroImg.width, H * 0.55 / heroImg.height);
+                        ctx.drawImage(heroImg, (W - heroImg.width*s)/2, 0, heroImg.width*s, heroImg.height*s);
+                        const heroGrad = ctx.createLinearGradient(0, 0, 0, H * 0.6);
+                        heroGrad.addColorStop(0, 'rgba(5,12,18,0.35)');
+                        heroGrad.addColorStop(0.5, 'rgba(5,12,18,0.6)');
+                        heroGrad.addColorStop(1, 'rgba(5,12,18,1)');
+                        ctx.fillStyle = heroGrad; ctx.fillRect(0, 0, W, H * 0.6);
+                    }
+                    ctx.fillStyle = '#050c12'; ctx.fillRect(0, H * 0.58, W, H * 0.42);
+                } else {
+                    // PNG : fond transparent — canvas déjà vide
+                    // On dessine juste la photo si disponible avec opacité réduite
+                    if (heroImg) {
+                        ctx.save();
+                        ctx.globalAlpha = 0.15;
+                        const s = Math.max(W / heroImg.width, H * 0.55 / heroImg.height);
+                        ctx.drawImage(heroImg, (W - heroImg.width*s)/2, 0, heroImg.width*s, heroImg.height*s);
+                        ctx.restore();
+                    }
                 }
 
-                // dark gradient over hero
-                const heroGrad = ctx.createLinearGradient(0, 0, 0, H * 0.6);
-                heroGrad.addColorStop(0,   'rgba(5,12,18,0.35)');
-                heroGrad.addColorStop(0.5, 'rgba(5,12,18,0.6)');
-                heroGrad.addColorStop(1,   'rgba(5,12,18,1)');
-                ctx.fillStyle = heroGrad;
-                ctx.fillRect(0, 0, W, H * 0.6);
-
-                // solid bottom
-                ctx.fillStyle = '#050c12';
-                ctx.fillRect(0, H * 0.58, W, H * 0.42);
-
                 // ── 2. TOP BAR ────────────────────────────────────────
-                // subtle top gradient
                 const topGrad = ctx.createLinearGradient(0,0,0,160);
                 topGrad.addColorStop(0,'rgba(200,107,60,0.18)');
                 topGrad.addColorStop(1,'rgba(0,0,0,0)');
                 ctx.fillStyle = topGrad;
                 ctx.fillRect(0, 0, W, 160);
+
+                // Couleurs adaptées selon le format
+                const textMain   = format === 'png' ? '#1A3D4A' : '#FFFFFF';
+                const textFaded  = format === 'png' ? 'rgba(26,61,74,0.55)' : 'rgba(255,255,255,0.55)';
+                const textMuted  = format === 'png' ? 'rgba(26,61,74,0.35)' : 'rgba(255,255,255,0.35)';
+                const haloColor  = format === 'png' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.7)';
 
                 // RIHLO logo
                 ctx.font = '700 58px serif';
@@ -3595,20 +3612,20 @@
                 ctx.letterSpacing = '0px';
 
                 // small dot separator
-                ctx.fillStyle = 'rgba(255,255,255,0.25)';
+                ctx.fillStyle = format === 'png' ? 'rgba(26,61,74,0.25)' : 'rgba(255,255,255,0.25)';
                 ctx.beginPath(); ctx.arc(310, 78, 4, 0, Math.PI*2); ctx.fill();
 
                 // tagline
                 ctx.font = '300 28px sans-serif';
-                ctx.fillStyle = 'rgba(255,255,255,0.45)';
+                ctx.fillStyle = format === 'png' ? 'rgba(26,61,74,0.45)' : 'rgba(255,255,255,0.45)';
                 ctx.letterSpacing = '4px';
                 ctx.fillText('JOURNAL DE VOYAGE', 332, 96);
                 ctx.letterSpacing = '0px';
 
                 // ── 3. TRIP TITLE ─────────────────────────────────────
                 ctx.font = '700 108px serif';
-                ctx.fillStyle = '#FFFFFF';
-                ctx.shadowColor = 'rgba(0,0,0,0.7)';
+                ctx.fillStyle = textMain;
+                ctx.shadowColor = haloColor;
                 ctx.shadowBlur  = 30;
                 const titleText = (cinTripData?.title || 'Mon Voyage').toUpperCase();
                 let titleY = wrapText(titleText, 72, 420, 936, 118);
@@ -3622,7 +3639,7 @@
 
                 // dates
                 ctx.font = '300 34px sans-serif';
-                ctx.fillStyle = 'rgba(255,255,255,0.55)';
+                ctx.fillStyle = textFaded;
                 ctx.letterSpacing = '5px';
                 const datesText = cinTripData?.startDate && cinTripData?.endDate
                     ? `${formatCinDate(cinTripData.startDate)}  —  ${formatCinDate(cinTripData.endDate)}`.toUpperCase()
@@ -3655,12 +3672,12 @@
                     ctx.stroke();
                     // number
                     ctx.font = '700 64px serif';
-                    ctx.fillStyle = i === 0 ? '#C86B3C' : '#FFFFFF';
+                    ctx.fillStyle = i === 0 ? '#C86B3C' : textMain;
                     ctx.textAlign = 'center';
                     ctx.fillText(s.num, cx + cardW/2, statsY + 100);
                     // label
                     ctx.font = '400 22px sans-serif';
-                    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+                    ctx.fillStyle = textMuted;
                     ctx.letterSpacing = '3px';
                     ctx.fillText(s.label, cx + cardW/2, statsY + 148);
                     ctx.letterSpacing = '0px';
@@ -3673,69 +3690,54 @@
 
                 // section title
                 ctx.font = '300 26px sans-serif';
-                ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                ctx.fillStyle = textMuted;
                 ctx.letterSpacing = '5px';
                 ctx.fillText('ÉTAPES DU VOYAGE', 72, listY);
                 ctx.letterSpacing = '0px';
                 listY += 48;
 
                 // thin separator
-                ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+                ctx.strokeStyle = format === 'png' ? 'rgba(26,61,74,0.15)' : 'rgba(255,255,255,0.08)';
                 ctx.lineWidth = 1;
                 ctx.beginPath(); ctx.moveTo(72, listY); ctx.lineTo(W-72, listY); ctx.stroke();
                 listY += 36;
 
                 cinStepsData.slice(0, maxSteps).forEach((step, i) => {
-                    // number badge
-                    ctx.fillStyle = i === 0 ? '#C86B3C' : 'rgba(255,255,255,0.08)';
-                    roundRect(72, listY - 32, 52, 52, 10);
-                    ctx.fill();
+                    ctx.fillStyle = i === 0 ? '#C86B3C' : (format === 'png' ? 'rgba(26,61,74,0.08)' : 'rgba(255,255,255,0.08)');
+                    roundRect(72, listY - 32, 52, 52, 10); ctx.fill();
                     ctx.font = '700 26px serif';
-                    ctx.fillStyle = '#FFFFFF';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(String(i+1).padStart(2,'0'), 98, listY + 2);
-                    ctx.textAlign = 'left';
-
-                    // city name
+                    ctx.fillStyle = format === 'png' ? '#1A3D4A' : '#FFFFFF';
+                    ctx.textAlign = 'center'; ctx.fillText(String(i+1).padStart(2,'00'), 98, listY + 2); ctx.textAlign = 'left';
                     ctx.font = '600 38px serif';
-                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillStyle = textMain;
                     ctx.fillText(step.title, 148, listY + 2);
-
-                    // country + date
                     ctx.font = '300 26px sans-serif';
-                    ctx.fillStyle = '#D4A574';
+                    ctx.fillStyle = '#C86B3C';
                     ctx.letterSpacing = '1px';
                     const meta = [step.location, formatCinDate(step.date)].filter(Boolean).join('  ·  ');
-                    ctx.fillText(meta, 148, listY + 38);
-                    ctx.letterSpacing = '0px';
-
-                    // row separator
+                    ctx.fillText(meta, 148, listY + 38); ctx.letterSpacing = '0px';
                     listY += 90;
                     if (i < maxSteps - 1) {
-                        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-                        ctx.lineWidth = 1;
-                        ctx.beginPath(); ctx.moveTo(148, listY - 14); ctx.lineTo(W-72, listY-14); ctx.stroke();
+                        ctx.strokeStyle = format === 'png' ? 'rgba(26,61,74,0.08)' : 'rgba(255,255,255,0.05)';
+                        ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(148, listY - 14); ctx.lineTo(W-72, listY-14); ctx.stroke();
                     }
                 });
 
-                // ── 6. BOTTOM BRANDING ────────────────────────────────
-                // terracotta bar at very bottom
-                ctx.fillStyle = '#C86B3C';
-                ctx.fillRect(0, H - 8, W, 8);
-
-                // bottom left: rihlo.app
-                ctx.font = '400 30px sans-serif';
-                ctx.fillStyle = 'rgba(255,255,255,0.25)';
-                ctx.letterSpacing = '3px';
-                ctx.fillText('rihlo.app', 72, H - 48);
-                ctx.letterSpacing = '0px';
-
-                // bottom right: CTA
-                ctx.font = '600 28px sans-serif';
-                ctx.fillStyle = 'rgba(200,107,60,0.7)';
-                ctx.textAlign = 'right';
-                ctx.fillText('Créez votre journal de voyage →', W - 72, H - 48);
-                ctx.textAlign = 'left';
+                // ── 6. BOTTOM BRANDING (JPG seulement) ───────────────
+                if (format === 'jpeg') {
+                    ctx.fillStyle = '#C86B3C';
+                    ctx.fillRect(0, H - 8, W, 8);
+                    ctx.font = '400 30px sans-serif';
+                    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+                    ctx.letterSpacing = '3px';
+                    ctx.fillText('rihlo.app', 72, H - 48);
+                    ctx.letterSpacing = '0px';
+                    ctx.font = '600 28px sans-serif';
+                    ctx.fillStyle = 'rgba(200,107,60,0.7)';
+                    ctx.textAlign = 'right';
+                    ctx.fillText('Créez votre journal de voyage →', W - 72, H - 48);
+                    ctx.textAlign = 'left';
+                }
 
                 // ── DOWNLOAD ─────────────────────────────────────────
                 const link = document.createElement('a');
