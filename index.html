@@ -1851,10 +1851,16 @@
         @media (max-width: 640px) {
 
             /* Navbar — cache le texte, garde les emojis */
-            .nav-link span { display: none; }
-            .btn-logout span { display: none; }
-            .btn-logout::after { content: '↪'; font-size: 16px; }
-            .navbar { padding: 0 16px; height: 60px; }
+            .nav-link span { display: none !important; }
+            .logout-text { display: none !important; }
+            .logout-icon { display: inline !important; font-size: 16px; }
+            .navbar { padding: 0 16px !important; height: 60px !important; }
+            .logo { font-size: 22px !important; }
+            .logo::after { right: -12px; font-size: 11px; }
+            .nav-menu { gap: 12px !important; }
+            .nav-link { font-size: 22px !important; padding: 6px 2px !important; gap: 0 !important; }
+            .nav-link::after { display: none !important; }
+            .btn-logout { padding: 8px 12px !important; font-size: 16px !important; border-radius: 8px !important; }
 
             /* Sections */
             .app-section { margin-top: 60px; padding: 20px 16px; }
@@ -1877,9 +1883,38 @@
             .trips-grid { grid-template-columns: 1fr; gap: 16px; }
 
             /* Trip detail — vertical */
-            .trip-detail { flex-direction: column; height: auto; min-height: calc(100vh - 60px); }
-            .trip-sidebar { width: 100%; border-right: none; border-bottom: 3px solid var(--clay); padding: 20px 16px; max-height: 55vh; overflow-y: auto; }
-            .trip-map-container { height: 45vh; min-height: 300px; }
+            .trip-detail {
+                flex-direction: column !important;
+                height: auto !important;
+                min-height: calc(100vh - 60px);
+            }
+            .trip-sidebar {
+                width: 100% !important;
+                border-right: none !important;
+                border-bottom: 3px solid var(--clay);
+                padding: 20px 16px !important;
+                max-height: none !important;
+                overflow-y: visible !important;
+                height: auto !important;
+            }
+            .trip-map-container {
+                width: 100% !important;
+                height: 400px !important;
+                min-height: 400px !important;
+                max-height: 400px !important;
+                position: relative !important;
+                display: block !important;
+                flex: none !important;
+            }
+            #trip-map {
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+            }
 
             /* Boutons sidebar */
             .btn-add-step, .btn-cinematic-story, .btn-share-trip { font-size: 13px; padding: 11px 16px; }
@@ -1994,7 +2029,7 @@
                 <a class="nav-link active" onclick="showSection('home')">🏠 <span>Accueil</span></a>
                 <a class="nav-link" onclick="showSection('trips')">🗺️ <span>Mes voyages</span></a>
                 <a class="nav-link" onclick="showSection('profile')">👤 <span>Profil</span></a>
-                <button class="btn-logout" onclick="logout()"><span>Déconnexion</span></button>
+                <button class="btn-logout" onclick="logout()"><span class="logout-text">Déconnexion</span><span class="logout-icon">↪</span></button>
             </div>
         </nav>
 
@@ -2555,6 +2590,14 @@
 
                 // Force map to resize after becoming visible
                 setTimeout(() => { if (tripMap) tripMap.resize(); }, 100);
+
+                // Also resize on orientation change (mobile)
+                window.addEventListener('orientationchange', () => {
+                    setTimeout(() => { if (tripMap) tripMap.resize(); }, 300);
+                });
+                window.addEventListener('resize', () => {
+                    setTimeout(() => { if (tripMap) tripMap.resize(); }, 100);
+                });
             } catch (error) {
                 console.error('Error loading trip:', error);
             } finally {
