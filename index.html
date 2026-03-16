@@ -1846,6 +1846,79 @@
             outline: none;
             border-color: var(--ocean);
         }
+
+        /* ============== RESPONSIVE MOBILE ============== */
+        @media (max-width: 640px) {
+
+            /* Navbar — cache le texte, garde les emojis */
+            .nav-link span { display: none; }
+            .btn-logout span { display: none; }
+            .btn-logout::after { content: '↪'; font-size: 16px; }
+            .navbar { padding: 0 16px; height: 60px; }
+
+            /* Sections */
+            .app-section { margin-top: 60px; padding: 20px 16px; }
+            #home-section { margin-top: 60px; }
+            #documents-section { margin-top: 60px; padding: 20px 16px; }
+
+            /* Trips header — empilé */
+            .trips-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+                margin-bottom: 20px;
+            }
+            .trips-header h2 { font-size: 26px; }
+            .trips-header > div { width: 100%; gap: 8px; }
+            .btn-new-trip { flex: 1; justify-content: center; padding: 11px 12px; font-size: 13px; }
+            .btn-join-trip { flex: 1; justify-content: center; padding: 11px 12px; font-size: 13px; }
+
+            /* Trips grid — 1 colonne */
+            .trips-grid { grid-template-columns: 1fr; gap: 16px; }
+
+            /* Trip detail — vertical */
+            .trip-detail { flex-direction: column; height: auto; min-height: calc(100vh - 60px); }
+            .trip-sidebar { width: 100%; border-right: none; border-bottom: 3px solid var(--clay); padding: 20px 16px; max-height: 55vh; overflow-y: auto; }
+            .trip-map-container { height: 45vh; min-height: 300px; }
+
+            /* Boutons sidebar */
+            .btn-add-step, .btn-cinematic-story, .btn-share-trip { font-size: 13px; padding: 11px 16px; }
+
+            /* Hero */
+            .hero-greeting { font-size: 34px; }
+            .hero-subtitle { font-size: 15px; margin-bottom: 28px; }
+            .hero-stats { gap: 20px; bottom: 20px; }
+            .hero-stat-number { font-size: 22px; }
+            .hero-stat-label { font-size: 10px; }
+            .hero-actions { gap: 10px; }
+            .btn-hero-primary, .btn-hero-secondary { padding: 13px 24px; font-size: 14px; }
+            .hero-photo:nth-child(3), .hero-photo:nth-child(4) { display: none; }
+            .hero-photo:nth-child(1) { width: 140px; height: 100px; }
+            .hero-photo:nth-child(2) { width: 110px; height: 150px; }
+
+            /* Modal */
+            .modal { padding: 12px; align-items: flex-end; }
+            .modal-content { padding: 24px 20px; border-radius: 20px 20px 16px 16px; max-height: 95vh; }
+
+            /* Step cards */
+            .step-number { left: -24px; width: 34px; height: 34px; font-size: 13px; }
+            .step-photo { width: 64px; height: 64px; }
+            .step-name { font-size: 15px; }
+
+            /* Shared trips */
+            .shared-trip-card { flex-wrap: wrap; gap: 12px; }
+            .shared-trip-actions { width: 100%; justify-content: flex-end; margin-top: 4px; }
+
+            /* Documents */
+            .docs-grid { grid-template-columns: 1fr; }
+
+            /* Cinematic */
+            .cin-step-section { flex-direction: column !important; padding: 40px 20px; }
+            .cin-step-photos { height: 300px; width: 100%; margin-bottom: 32px; }
+            .cin-step-content { padding: 0; }
+            .cin-hero-stats { gap: 24px; }
+            .cin-hero-stat-num { font-size: 36px; }
+        }
     </style>
 </head>
 <body>
@@ -1918,10 +1991,10 @@
         <nav class="navbar">
             <div class="logo" onclick="showSection('home')">RIHLO</div>
             <div class="nav-menu">
-                <a class="nav-link active" onclick="showSection('home')">🏠 Accueil</a>
-                <a class="nav-link" onclick="showSection('trips')">🗺️ Mes voyages</a>
-                <a class="nav-link" onclick="showSection('profile')">👤 Profil</a>
-                <button class="btn-logout" onclick="logout()">Déconnexion</button>
+                <a class="nav-link active" onclick="showSection('home')">🏠 <span>Accueil</span></a>
+                <a class="nav-link" onclick="showSection('trips')">🗺️ <span>Mes voyages</span></a>
+                <a class="nav-link" onclick="showSection('profile')">👤 <span>Profil</span></a>
+                <button class="btn-logout" onclick="logout()"><span>Déconnexion</span></button>
             </div>
         </nav>
 
